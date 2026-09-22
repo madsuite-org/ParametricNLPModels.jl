@@ -2,16 +2,24 @@ using Documenter
 using ParametricNLPModels
 
 makedocs(
-    modules = [ParametricNLPModels],
     sitename = "ParametricNLPModels.jl",
-    format = Documenter.HTML(),
+    format = Documenter.HTML(
+        prettyurls = Base.get(ENV, "CI", nothing) == "true",
+        mathengine = Documenter.KaTeX(),
+        size_threshold_ignore = ["reference.md"],
+    ),
+    modules = [ParametricNLPModels],
+    repo = Documenter.Remotes.GitHub("madsuite-org", "ParametricNLPModels.jl"),
+    checkdocs = :exports,
+    clean = true,
     pages = [
         "Home" => "index.md",
-        "Reference" => "public.md",
+        "Reference" => "reference.md",
     ],
 )
 
 deploydocs(
-    repo = "github.com/klamike/ParametricNLPModels.jl.git",
+    repo = "github.com/madsuite-org/ParametricNLPModels.jl.git",
     devbranch = "main",
+    push_preview = true,
 )

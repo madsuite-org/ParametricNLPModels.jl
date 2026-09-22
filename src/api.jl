@@ -1,29 +1,8 @@
-export get_npar, get_nnzj_par, get_nnzh_par, get_par, set_par!
+export get_par, set_par!, grad_par, grad_par!
 export jac_par_structure!, jac_par_structure, jac_par_coord!, jac_par_coord
 export jac_par, jac_par_dense!, jprod_par, jprod_par!, jtprod_par, jtprod_par!
 export hess_par_structure!, hess_par_structure, hess_par_coord!, hess_par_coord
 export hess_par, hess_par_dense!, hprod_par, hprod_par!, htprod_par, htprod_par!
-
-"""
-    get_npar(nlp)
-
-Return the number of parameters.
-"""
-function get_npar end
-
-"""
-    get_nnzj_par(nlp)
-
-Return the number of elements needed to store the nonzeros in ``∂c/∂θ``.
-"""
-function get_nnzj_par end
-
-"""
-    get_nnzh_par(nlp)
-
-Return the number of elements needed to store the nonzeros in ``∂²L/∂x∂θ``.
-"""
-function get_nnzh_par end
 
 """
     θ = get_par(nlp)
@@ -38,6 +17,24 @@ function get_par end
 Set the parameter vector to `θ`.
 """
 function set_par! end
+
+"""
+    g = grad_par!(nlp, x, g)
+
+Evaluate ``∂f/∂θ(x)``, the gradient of the objective function with respect to the parameters at `x` in place.
+"""
+function grad_par! end
+
+"""
+    g = grad_par(nlp, x)
+
+Evaluate ``∂f/∂θ(x)``, the gradient of the objective function with respect to the parameters at `x`.
+"""
+function grad_par(nlp::AbstractNLPModel{T, S}, x::AbstractVector) where {T, S}
+    @lencheck get_nvar(nlp) x
+    g = S(undef, get_npar(nlp))
+    return grad_par!(nlp, x, g)
+end
 
 """
     jac_par_structure!(nlp, rows, cols)
@@ -208,6 +205,20 @@ function hess_par_structure(nlp::AbstractNLPModel)
 end
 
 """
+    vals = hess_par_coord!(nlp, x, vals; obj_weight=1.0)
+
+Evaluate the objective Hessian with respect to the variables and the parameters ``∂²f/∂x∂θ(x)`` at `x` in sparse coordinate format,
+with objective function scaled by `obj_weight`, i.e.,
+$(OBJECTIVE_HESSIAN_PAR), overwriting `vals`.
+"""
+function hess_par_coord!(nlp::AbstractNLPModel{T, S}, x::AbstractVector, vals::AbstractVector; obj_weight = one(eltype(x))) where {T, S}
+    @lencheck get_nvar(nlp) x
+    @lencheck get_nnzh_par(nlp) vals
+    y = fill!(S(undef, get_ncon(nlp)), 0)
+    return hess_par_coord!(nlp, x, y, vals; obj_weight)
+end
+
+"""
     vals = hess_par_coord!(nlp, x, y, vals; obj_weight=1.0)
 
 Evaluate the Lagrangian Hessian with respect to the variables and the parameters ``∂²L/∂x∂θ(x,y)`` at `(x,y)` in sparse coordinate format,
@@ -215,6 +226,19 @@ with objective function scaled by `obj_weight`, i.e.,
 $(LAGRANGIAN_HESSIAN_PAR), overwriting `vals`.
 """
 function hess_par_coord! end
+
+"""
+    vals = hess_par_coord(nlp, x; obj_weight=1.0)
+
+Evaluate the objective Hessian with respect to the variables and the parameters ``∂²f/∂x∂θ(x)`` at `x` in sparse coordinate format,
+with objective function scaled by `obj_weight`, i.e.,
+$(OBJECTIVE_HESSIAN_PAR).
+"""
+function hess_par_coord(nlp::AbstractNLPModel{T, S}, x::AbstractVector; obj_weight = one(eltype(x))) where {T, S}
+    @lencheck get_nvar(nlp) x
+    vals = S(undef, get_nnzh_par(nlp))
+    return hess_par_coord!(nlp, x, vals; obj_weight)
+end
 
 """
     vals = hess_par_coord(nlp, x, y; obj_weight=1.0)
@@ -231,6 +255,20 @@ function hess_par_coord(nlp::AbstractNLPModel{T, S}, x::AbstractVector, y::Abstr
 end
 
 """
+    Hxθ = hess_par(nlp, x; obj_weight=1.0)
+
+Evaluate the objective Hessian with respect to the variables and the parameters ``∂²f/∂x∂θ(x)`` at `x` as a sparse matrix,
+with objective function scaled by `obj_weight`, i.e.,
+$(OBJECTIVE_HESSIAN_PAR).
+"""
+function hess_par(nlp::AbstractNLPModel, x::AbstractVector; obj_weight = one(eltype(x)))
+    @lencheck get_nvar(nlp) x
+    rows, cols = hess_par_structure(nlp)
+    vals = hess_par_coord(nlp, x; obj_weight)
+    return sparse(rows, cols, vals, get_nvar(nlp), get_npar(nlp))
+end
+
+"""
     Hxθ = hess_par(nlp, x, y; obj_weight=1.0)
 
 Evaluate the Lagrangian Hessian with respect to the variables and the parameters ``∂²L/∂x∂θ(x,y)`` at `(x,y)` as a sparse matrix,
@@ -243,6 +281,20 @@ function hess_par(nlp::AbstractNLPModel, x::AbstractVector, y::AbstractVector; o
     rows, cols = hess_par_structure(nlp)
     vals = hess_par_coord(nlp, x, y; obj_weight)
     return sparse(rows, cols, vals, get_nvar(nlp), get_npar(nlp))
+end
+
+"""
+    Hxθ = hess_par_dense!(nlp, x, Hxθ; obj_weight=1.0)
+
+Evaluate the objective Hessian with respect to the variables and the parameters ``∂²f/∂x∂θ(x)`` at `x` in dense format, overwriting `Hxθ`,
+with objective function scaled by `obj_weight`, i.e.,
+$(OBJECTIVE_HESSIAN_PAR).
+"""
+function hess_par_dense!(nlp::AbstractNLPModel, x::AbstractVector, Hxθ::AbstractMatrix; obj_weight = one(eltype(x)))
+    @lencheck get_nvar(nlp) x
+    rows, cols = hess_par_structure(nlp)
+    vals = hess_par_coord(nlp, x; obj_weight)
+    return _dense!(Hxθ, rows, cols, vals)
 end
 
 """
@@ -263,6 +315,20 @@ function hess_par_dense!(
 end
 
 """
+    Hv = hprod_par(nlp, x, v; obj_weight=1.0)
+
+Evaluate the product of the objective Hessian with respect to the variables and the parameters ``∂²f/∂x∂θ(x)`` at `x` with the vector `v`,
+with objective function scaled by `obj_weight`, where the objective Hessian ``∂²f/∂x∂θ(x)`` is
+$(OBJECTIVE_HESSIAN_PAR).
+"""
+function hprod_par(nlp::AbstractNLPModel{T, S}, x::AbstractVector, v::AbstractVector; obj_weight = one(eltype(x))) where {T, S}
+    @lencheck get_nvar(nlp) x
+    @lencheck get_npar(nlp) v
+    Hv = S(undef, get_nvar(nlp))
+    return hprod_par!(nlp, x, v, Hv; obj_weight)
+end
+
+"""
     Hv = hprod_par(nlp, x, y, v; obj_weight=1.0)
 
 Evaluate the product of the Lagrangian Hessian with respect to the variables and the parameters ``∂²L/∂x∂θ(x,y)`` at `(x,y)` with the vector `v`,
@@ -274,6 +340,21 @@ function hprod_par(nlp::AbstractNLPModel{T, S}, x::AbstractVector, y::AbstractVe
     @lencheck get_ncon(nlp) y
     @lencheck get_npar(nlp) v
     Hv = S(undef, get_nvar(nlp))
+    return hprod_par!(nlp, x, y, v, Hv; obj_weight)
+end
+
+"""
+    Hv = hprod_par!(nlp, x, v, Hv; obj_weight=1.0)
+
+Evaluate the product of the objective Hessian with respect to the variables and the parameters ``∂²f/∂x∂θ(x)`` at `x` with the vector `v` in place,
+with objective function scaled by `obj_weight`, where the objective Hessian ``∂²f/∂x∂θ(x)`` is
+$(OBJECTIVE_HESSIAN_PAR).
+This function allocates.
+"""
+function hprod_par!(nlp::AbstractNLPModel{T, S}, x::AbstractVector, v::AbstractVector, Hv::AbstractVector; obj_weight = one(eltype(x))) where {T, S}
+    @lencheck get_nvar(nlp) x Hv
+    @lencheck get_npar(nlp) v
+    y = fill!(S(undef, get_ncon(nlp)), 0)
     return hprod_par!(nlp, x, y, v, Hv; obj_weight)
 end
 
@@ -315,6 +396,19 @@ function hprod_par!(
 end
 
 """
+    Htv = htprod_par(nlp, x, v; obj_weight=1.0)
+
+Evaluate the product of the transposed objective Hessian with respect to the variables and the parameters ``∂²f/∂x∂θ(x)^T`` at `x` with the vector `v`,
+with objective function scaled by `obj_weight`, where the objective Hessian ``∂²f/∂x∂θ(x)`` is
+$(OBJECTIVE_HESSIAN_PAR).
+"""
+function htprod_par(nlp::AbstractNLPModel{T, S}, x::AbstractVector, v::AbstractVector; obj_weight = one(eltype(x))) where {T, S}
+    @lencheck get_nvar(nlp) x v
+    Htv = S(undef, get_npar(nlp))
+    return htprod_par!(nlp, x, v, Htv; obj_weight)
+end
+
+"""
     Htv = htprod_par(nlp, x, y, v; obj_weight=1.0)
 
 Evaluate the product of the transposed Lagrangian Hessian with respect to the variables and the parameters ``∂²L/∂x∂θ(x,y)^T`` at `(x,y)` with the vector `v`,
@@ -325,6 +419,21 @@ function htprod_par(nlp::AbstractNLPModel{T, S}, x::AbstractVector, y::AbstractV
     @lencheck get_nvar(nlp) x v
     @lencheck get_ncon(nlp) y
     Htv = S(undef, get_npar(nlp))
+    return htprod_par!(nlp, x, y, v, Htv; obj_weight)
+end
+
+"""
+    Htv = htprod_par!(nlp, x, v, Htv; obj_weight=1.0)
+
+Evaluate the product of the transposed objective Hessian with respect to the variables and the parameters ``∂²f/∂x∂θ(x)^T`` at `x` with the vector `v` in place,
+with objective function scaled by `obj_weight`, where the objective Hessian ``∂²f/∂x∂θ(x)`` is
+$(OBJECTIVE_HESSIAN_PAR).
+This function allocates.
+"""
+function htprod_par!(nlp::AbstractNLPModel{T, S}, x::AbstractVector, v::AbstractVector, Htv::AbstractVector; obj_weight = one(eltype(x))) where {T, S}
+    @lencheck get_nvar(nlp) x v
+    @lencheck get_npar(nlp) Htv
+    y = fill!(S(undef, get_ncon(nlp)), 0)
     return htprod_par!(nlp, x, y, v, Htv; obj_weight)
 end
 
