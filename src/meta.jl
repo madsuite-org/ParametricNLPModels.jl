@@ -9,7 +9,7 @@ Metadata for the derivatives with respect to the parameters.
 - `nnzo_par`: number of nonzeros in ``∂f/∂θ``
 - `nnzj_par`: number of nonzeros in ``∂c/∂θ``
 - `nnzh_par`: number of nonzeros in ``∂²L/∂x∂θ``
-- `nnzj_lvar_par`, `nnzj_uvar_par`, `nnzj_lcon_par`, `nnzj_ucon_par`: number of nonzeros in ``∂lvar/∂θ``, ``∂uvar/∂θ``, ``∂lcon/∂θ``, ``∂ucon/∂θ``
+- `nnzj_lvar_par`, `nnzj_uvar_par`, `nnzj_lcon_par`, `nnzj_ucon_par`: number of nonzeros in ``∂x^ℓ/∂θ``, ``∂x^u/∂θ``, ``∂c^ℓ/∂θ``, ``∂c^u/∂θ``
 - `grad_par_available`, `jac_par_available`, `hess_par_available`, `jprod_par_available`, `jtprod_par_available`, `hprod_par_available`, `htprod_par_available`: whether the function is implemented
 """
 struct ParametricNLPModelMeta

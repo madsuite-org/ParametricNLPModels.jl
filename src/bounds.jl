@@ -6,7 +6,8 @@ for block in (:lvar, :uvar, :lcon, :ucon)
     jac, dense! = Symbol(block, "_jac_par"), Symbol(block, "_jac_par_dense!")
     jprod!, jprod = Symbol(block, "_jprod_par!"), Symbol(block, "_jprod_par")
     jtprod!, jtprod = Symbol(block, "_jtprod_par!"), Symbol(block, "_jtprod_par")
-    name, B = string(block), "∂$block/∂θ"
+    symbol = Dict(:lvar => "x^ℓ", :uvar => "x^u", :lcon => "c^ℓ", :ucon => "c^u")[block]
+    name, B = string(block), "∂$symbol/∂θ"
     @eval begin
         export $structure!, $structure, $coord!, $coord, $jac, $dense!, $jprod!, $jprod, $jtprod!, $jtprod
 
