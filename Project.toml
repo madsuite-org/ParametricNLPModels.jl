@@ -1,5 +1,5 @@
 name = "ParametricNLPModels"
-uuid = "2b1173c3-9f92-4713-968c-5c7b286ba7d5"
+uuid = "1ff82034-6bb8-44a0-b51b-5c1bd563924f"
 version = "0.1.0"
 
 [deps]
