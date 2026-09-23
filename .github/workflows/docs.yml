@@ -4,14 +4,17 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
+
+permissions:
+  contents: write
+  pull-requests: read
+  statuses: write
 
 jobs:
   build:
-    permissions:
-      contents: write
-      pull-requests: read
-      statuses: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +23,7 @@ jobs:
           version: '1'
       - uses: julia-actions/cache@v2
       - name: Install dependencies
-        run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+        run: julia --project=docs/ -e 'using Pkg; Pkg.instantiate()'
       - name: Build and deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
