@@ -4,6 +4,7 @@ using ParametricNLPModels
 makedocs(
     sitename = "ParametricNLPModels.jl",
     format = Documenter.HTML(
+        assets = ["assets/favicon.ico"],
         prettyurls = Base.get(ENV, "CI", nothing) == "true",
         mathengine = Documenter.KaTeX(),
         size_threshold_ignore = ["reference.md"],
